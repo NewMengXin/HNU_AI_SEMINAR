@@ -1,0 +1,21 @@
+Refer to the Figure 1 below. Apply the A* search algorithm to find a path from 
+Fagaras to Craiova, using the following evaluation function f(n): 
+f(n) = g(n) + h(n) 
+where h(n) = (|hSLD(Craiov) − hSLD(n)|) and hSLD(n) is the straight-line distance from 
+any city n to Bucharest. Trace the A* search algorithm by showing the series of search 
+trees as each node is expanded, based on the TREE-SEARCH algorithm. Prove that h(n) 
+is an admissible heuristic. 
+(a) Given that a heuristic h is such that h(G) = 0, where G is any goal state, 
+prove that if h is consistent, then it must be admissible. 
+(b) Give an example of an admissible heuristic function that is not consistent. 
+(c) Is it possible for a heuristic to be consistent and yet not admissible? If 
+not, prove it. If it is, define one such heuristic.
+
+
+function TREE-SEARCH(problem,fringe) returns a solution, or failure
+fringe←INSERT(MAKE-NODE(INITIAL-STATE[problem]), fringe)
+loop do
+    if fringe is empty then return failure
+    node←REMOVE-FRoNT(fringe)
+    if goal-TEST[problem] , applied to STATE(node) succeeds return node
+    fringe←INSERTALL(EXPAND(node,prblem),fringe)

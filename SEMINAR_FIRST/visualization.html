@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>A*算法可视化演示</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            min-width: 800px;
+            overflow-x: auto;
+            display: flex;
+            flex-direction: column;
+            background-color: #f5f5f5;
+        }
+        #graph-container {
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+            width: 100%;
+            min-height: 600px;
+            overflow: hidden;
+            height: 1000px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .node {
+            fill: #fff;
+            stroke: #000;
+            stroke-width: 2px;
+            transition: all 0.3s ease;
+        }
+        .node:hover {
+            stroke-width: 3px;
+            filter: brightness(0.95);
+        }
+        .node.active {
+            fill: #ff7f0e;
+        }
+        .node.closed {
+            fill: #d62728;
+        }
+        .node.path {
+            fill: #2ca02c;
+        }
+        .link {
+            stroke: #999;
+            stroke-width: 2px;
+            transition: all 0.3s ease;
+        }
+        .link.path {
+            stroke: #2ca02c;
+            stroke-width: 3px;
+        }
+        #controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            width: 350px;
+        }
+        #controls select {
+            padding: 6px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: white;
+            min-width: 100px;
+        }
+        #controls button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #controls button:hover {
+            background-color: #45a049;
+        }
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e8f5e9;
+            border-radius: 4px;
+            color: #2e7d32;
+        }
+        .info-panel {
+            border: 1px solid #ccc;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-panel h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+        }
+        .info-panel table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .info-panel th {
+            background-color: #f8f9fa;
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            color: #495057;
+        }
+        .info-panel td {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+        }
+        .info-panel tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .info-panel tr:hover {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>A*算法路径搜索可视化</h1>
+    <div class="main-container" style="display: flex; gap: 20px;">
+        <div class="left-panel" style="flex: 0 0 300px;">
+            <div id="controls">
+                <div class="control-row" style="margin-bottom: 10px;">
+                    <label>起点：</label>
+                    <select id="start"></select>
+                </div>
+                <div class="control-row" style="margin-bottom: 10px;">
+                    <label>终点：</label>
+                    <select id="end"></select>
+                </div>
+                <div class="control-row" style="display: flex; gap: 10px;">
+                    <button onclick="startSearch()">开始搜索</button>
+                    <button onclick="pauseSearch()">暂停/继续</button>
+                    <button onclick="nextStep()">下一步</button>
+                    <button onclick="resetSearch()">重置</button>
+                </div>
+            </div>
+            <div class="info-panel">
+                <h3>当前状态</h3>
+                <div id="status"></div>
+            </div>
+            <div class="info-panel">
+                <h3>Open List</h3>
+                <div id="openList"></div>
+            </div>
+            <div class="info-panel">
+                <h3>Closed List</h3>
+                <div id="closedList"></div>
+            </div>
+        </div>
+        <div class="right-panel" style="flex: 1;">
+            <div id="graph-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // 城市数据
+        const cities = [
+            {id: 0, name: 'A', h: 366},
+            {id: 1, name: 'B', h: 0},
+            {id: 2, name: 'C', h: 160},
+            {id: 3, name: 'D', h: 242},
+            {id: 4, name: 'E', h: 161},
+            {id: 5, name: 'F', h: 178},
+            {id: 6, name: 'G', h: 77},
+            {id: 7, name: 'H', h: 151},
+            {id: 8, name: 'I', h: 226},
+            {id: 9, name: 'L', h: 244},
+            {id: 10, name: 'M', h: 241},
+            {id: 11, name: 'N', h: 234},
+            {id: 12, name: 'O', h: 380},
+            {id: 13, name: 'P', h: 98},
+            {id: 14, name: 'R', h: 193},
+            {id: 15, name: 'S', h: 253},
+            {id: 16, name: 'T', h: 329},
+            {id: 17, name: 'U', h: 80},
+            {id: 18, name: 'V', h: 199},
+            {id: 19, name: 'Z', h: 374}
+        ];
+
+        // 边数据
+        const edges = [
+            {source: 12, target: 19, distance: 71},
+            {source: 12, target: 15, distance: 151},
+            {source: 19, target: 0, distance: 75},
+            {source: 0, target: 15, distance: 140},
+            {source: 0, target: 16, distance: 118},
+            {source: 16, target: 9, distance: 111},
+            {source: 9, target: 10, distance: 70},
+            {source: 10, target: 3, distance: 75},
+            {source: 3, target: 2, distance: 120},
+            {source: 2, target: 14, distance: 146},
+            {source: 15, target: 14, distance: 80},
+            {source: 15, target: 5, distance: 99},
+            {source: 5, target: 1, distance: 211},
+            {source: 13, target: 2, distance: 138},
+            {source: 14, target: 13, distance: 97},
+            {source: 13, target: 1, distance: 101},
+            {source: 1, target: 6, distance: 90},
+            {source: 1, target: 17, distance: 85},
+            {source: 17, target: 7, distance: 98},
+            {source: 7, target: 4, distance: 86},
+            {source: 17, target: 18, distance: 142},
+            {source: 8, target: 18, distance: 92},
+            {source: 8, target: 11, distance: 87}
+        ];
+
+        // 初始化图形
+        const container = document.getElementById('graph-container');
+        const width = Math.max(container.clientWidth, 800);
+        const height = Math.max(container.clientHeight, 600);
+        const svg = d3.select('#graph-container')
+            .append('svg')
+            .attr('width', '100%')
+            .attr('height', height)
+            .attr('preserveAspectRatio', 'xMidYMid meet')
+            .attr('viewBox', `0 0 ${width} ${height}`);
+
+        // 创建力导向图
+        const simulation = d3.forceSimulation(cities)
+            .force('link', d3.forceLink(edges).id(d => d.id).distance(30))
+            .force('charge', d3.forceManyBody().strength(-250))
+            .force('center', d3.forceCenter(width / 2, height / 2))
+            .force('collision', d3.forceCollide().radius(60));
+
+        // 绘制边
+        const link = svg.append('g')
+            .selectAll('line')
+            .data(edges)
+            .enter()
+            .append('line')
+            .attr('class', 'link')
+            .attr('stroke-width', 2);
+
+        // 添加边的距离标签
+        const edgeLabels = svg.append('g')
+            .selectAll('text')
+            .data(edges)
+            .enter()
+            .append('text')
+            .text(d => d.distance)
+            .attr('text-anchor', 'middle')
+            .attr('dy', -5);
+
+        // 绘制节点
+        const node = svg.append('g')
+            .selectAll('g')
+            .data(cities)
+            .enter()
+            .append('g');
+
+        node.append('circle')
+            .attr('class', 'node')
+            .attr('r', 20);
+
+        node.append('text')
+            .text(d => d.name)
+            .attr('text-anchor', 'middle')
+            .attr('dy', '.3em');
+
+        // 更新力导向图
+        simulation.on('tick', () => {
+            link
+                .attr('x1', d => d.source.x)
+                .attr('y1', d => d.source.y)
+                .attr('x2', d => d.target.x)
+                .attr('y2', d => d.target.y);
+
+            edgeLabels
+                .attr('x', d => (d.source.x + d.target.x) / 2)
+                .attr('y', d => (d.source.y + d.target.y) / 2);
+
+            node
+                .attr('transform', d => `translate(${d.x},${d.y})`);
+        });
+
+        // 初始化下拉菜单
+        const startSelect = document.getElementById('start');
+        const endSelect = document.getElementById('end');
+
+        cities.forEach(city => {
+            const startOption = document.createElement('option');
+            startOption.value = city.id;
+            startOption.text = city.name;
+            startSelect.appendChild(startOption);
+
+            const endOption = document.createElement('option');
+            endOption.value = city.id;
+            endOption.text = city.name;
+            endSelect.appendChild(endOption);
+        });
+
+        // A*算法实现
+        class Node {
+            constructor(id, g, h) {
+                this.id = id;
+                this.g = g;
+                this.h = h;
+                this.f = g + h;
+                this.parent = null;
+            }
+        }
+
+        let openList = [];
+        let closedList = [];
+        let currentPath = [];
+        let isPaused = false;
+        let isStepMode = false;
+        let currentNode = null;
+        let neighbors = [];
+
+        function getNeighbors(nodeId) {
+            return edges.filter(edge => 
+                edge.source.id === nodeId || edge.target.id === nodeId
+            ).map(edge => ({
+                id: edge.source.id === nodeId ? edge.target.id : edge.source.id,
+                distance: edge.distance
+            }));
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function startSearch() {
+            resetSearch();
+            const startId = parseInt(startSelect.value);
+            const endId = parseInt(endSelect.value);
+
+            const startNode = new Node(startId, 0, cities[startId].h);
+            openList.push(startNode);
+            updateStatus('搜索开始');
+            isPaused = false;
+
+            while (openList.length > 0) {
+                if (isPaused) {
+                    await sleep(100);
+                    continue;
+                }
+
+                if (isStepMode) {
+                    isPaused = true;
+                    isStepMode = false;
+                }
+
+                openList.sort((a, b) => a.f - b.f);
+                currentNode = openList.shift();
+                closedList.push(currentNode);
+
+                updateVisualization();
+                await sleep(500);
+
+                if (currentNode.id === endId) {
+                    let node = currentNode;
+                    while (node) {
+                        currentPath.unshift(node.id);
+                        node = node.parent;
+                    }
+                    updateVisualization();
+                    updateStatus('找到路径！');
+                    return;
+                }
+
+                neighbors = getNeighbors(currentNode.id);
+                for (const neighbor of neighbors) {
+                    if (closedList.some(node => node.id === neighbor.id)) {
+                        continue;
+                    }
+
+                    const g = currentNode.g + neighbor.distance;
+                    const h = cities[neighbor.id].h;
+                    const neighborNode = new Node(neighbor.id, g, h);
+                    neighborNode.parent = currentNode;
+
+                    const openNode = openList.find(node => node.id === neighbor.id);
+                    if (!openNode) {
+                        openList.push(neighborNode);
+                    } else if (g < openNode.g) {
+                        openNode.g = g;
+                        openNode.f = g + h;
+                        openNode.parent = currentNode;
+                    }
+                }
+
+                updateVisualization();
+                if (!isPaused) {
+                    await sleep(500);
+                }
+            }
+
+            updateStatus('未找到路径');
+        }
+
+        function pauseSearch() {
+            isPaused = !isPaused;
+            updateStatus(isPaused ? '搜索已暂停' : '搜索继续');
+        }
+
+        function nextStep() {
+            if (!openList.length && !closedList.length) {
+                startSearch();
+                isPaused = true;
+                return;
+            }
+            if (isPaused) {
+                isStepMode = true;
+                isPaused = false;
+            }
+        }
+
+        function resetSearch() {
+            openList = [];
+            closedList = [];
+            currentPath = [];
+            currentNode = null;
+            neighbors = [];
+            isPaused = false;
+            isStepMode = false;
+            updateVisualization();
+            updateStatus('重置完成');
+        }
+
+        function updateVisualization() {
+            // 更新节点状态
+            svg.selectAll('.node')
+                .attr('class', 'node')
+                .classed('active', d => openList.some(node => node.id === d.id))
+                .classed('closed', d => closedList.some(node => node.id === d.id))
+                .classed('path', d => currentPath.includes(d.id));
+
+            // 更新边状态
+            svg.selectAll('.link')
+                .attr('class', 'link')
+                .classed('path', d => {
+                    if (currentPath.length < 2) return false;
+                    for (let i = 0; i < currentPath.length - 1; i++) {
+                        if ((d.source.id === currentPath[i] && d.target.id === currentPath[i + 1]) ||
+                            (d.target.id === currentPath[i] && d.source.id === currentPath[i + 1])) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
+
+            // 更新列表显示
+            document.getElementById('openList').innerHTML = `
+                <table style="width:100%; border-collapse: collapse; margin-top: 5px;">
+                    <thead>
+                        <tr style="background-color: #f0f0f0;">
+                            <th style="padding: 5px; border: 1px solid #ccc;">节点</th>
+                            <th style="padding: 5px; border: 1px solid #ccc;">g值<br><small>(已走距离)</small></th>
+                            <th style="padding: 5px; border: 1px solid #ccc;">h值<br><small>(预估距离)</small></th>
+                            <th style="padding: 5px; border: 1px solid #ccc;">f值<br><small>(总估值)</small></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${openList.map(node => `
+                            <tr>
+                                <td style="padding: 5px; border: 1px solid #ccc; text-align: center;">${cities[node.id].name}</td>
+                                <td style="padding: 5px; border: 1px solid #ccc; text-align: center;">${node.g}</td>
+                                <td style="padding: 5px; border: 1px solid #ccc; text-align: center;">${node.h}</td>
+                                <td style="padding: 5px; border: 1px solid #ccc; text-align: center;">${node.f}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            document.getElementById('closedList').innerHTML = `
+                <div style="margin-top: 5px;">
+                    ${closedList.map(node => `
+                        <span style="display: inline-block; padding: 3px 8px; margin: 2px; background-color: #f0f0f0; border-radius: 3px;">
+                            ${cities[node.id].name}
+                        </span>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').innerHTML = message;
+        }
+
+        // 初始化显示
+        updateStatus('请选择起点和终点');
+        updateVisualization();
+    </script>
+</body>
+</html>
