@@ -238,7 +238,7 @@ void print_result(Graph &graph)
 
 根据三角不等式，对于任意两个城市n和m，从n到m的实际路径长度必然大于等于它们之间的直线距离。因此，从n到Craiova的实际最短路径长度必然大于等于它们之间的直线距离。
 
-而|hSLD(Craiova) - hSLD(n)|表示的是从n到Bucharest的直线距离与从Craiova到Bucharest的直线距离之差的绝对值，这个值通常小于n到Craiova的直线距离，更小于实际路径长度。
+而|hSLD(Craiova) - hSLD(n)|表示的是从n到Bucharest的直线距离与从Craiova到Bucharest的直线距离之差的绝对值，这个值小于等于n到Craiova的直线距离，更小于实际路径长度。
 
 因此，该启发式函数是可采纳的。
 

@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>A*算法可视化演示</title>
+    <title>A*算法可视化演示 - 自定义启发函数</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <style>
         body {
@@ -128,6 +128,11 @@
 </head>
 <body>
     <h1>路径搜索算法可视化</h1>
+    <div class="info-panel" style="margin-bottom: 20px;">
+        <h3>启发函数说明</h3>
+        <p>当前A*算法使用的启发函数为：h(n) = |hSLD(Craiova) - hSLD(n)|</p>
+        <p>其中，hSLD(n)表示从城市n到Bucharest的直线距离，Craiova的hSLD值为160。</p>
+    </div>
     <div class="main-container" style="display: flex; gap: 20px;">
         <div class="left-panel" style="flex: 0 0 300px;">
             <div id="controls">
@@ -346,7 +351,10 @@
             const endId = parseInt(endSelect.value);
 
             const algorithm = document.getElementById('algorithm').value;
-            const h = algorithm === 'astar' ? cities[startId].h : 0;
+            // 使用新的启发函数：h(n) = |hSLD(Craiova) - hSLD(n)|
+            // Craiova对应城市C，id为2，h值为160
+            const craiova_h = 160; // 城市C(Craiova)的h值
+            const h = algorithm === 'astar' ? Math.abs(craiova_h - cities[startId].h) : 0;
             const startNode = new Node(startId, 0, h);
             openList.push(startNode);
             updateStatus('搜索开始');
@@ -396,7 +404,9 @@
                     }
 
                     const g = currentNode.g + neighbor.distance;
-                    const h = algorithm === 'astar' ? cities[neighbor.id].h : 0;
+                    // 使用新的启发函数：h(n) = |hSLD(Craiova) - hSLD(n)|
+                    const craiova_h = 160; // 城市C(Craiova)的h值
+                    const h = algorithm === 'astar' ? Math.abs(craiova_h - cities[neighbor.id].h) : 0;
                     const neighborNode = new Node(neighbor.id, g, h);
                     neighborNode.parent = currentNode;
 
