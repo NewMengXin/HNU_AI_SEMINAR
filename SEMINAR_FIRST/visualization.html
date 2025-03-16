@@ -127,17 +127,24 @@
     </style>
 </head>
 <body>
-    <h1>A*算法路径搜索可视化</h1>
+    <h1>路径搜索算法可视化</h1>
     <div class="main-container" style="display: flex; gap: 20px;">
         <div class="left-panel" style="flex: 0 0 300px;">
             <div id="controls">
-                <div class="control-row" style="margin-bottom: 10px;">
-                    <label>起点：</label>
-                    <select id="start"></select>
+                <div class="control-row" style="margin-bottom: 15px;">
+                    <label style="display: inline-block; width: 60px;">算法：</label>
+                    <select id="algorithm" style="width: 200px;">
+                        <option value="astar">A*算法</option>
+                        <option value="dijkstra">Dijkstra算法</option>
+                    </select>
                 </div>
-                <div class="control-row" style="margin-bottom: 10px;">
-                    <label>终点：</label>
-                    <select id="end"></select>
+                <div class="control-row" style="margin-bottom: 15px;">
+                    <label style="display: inline-block; width: 60px;">起点：</label>
+                    <select id="start" style="width: 200px;"></select>
+                </div>
+                <div class="control-row" style="margin-bottom: 15px;">
+                    <label style="display: inline-block; width: 60px;">终点：</label>
+                    <select id="end" style="width: 200px;"></select>
                 </div>
                 <div class="control-row" style="display: flex; gap: 10px;">
                     <button onclick="startSearch()">开始搜索</button>
@@ -338,7 +345,9 @@
             const startId = parseInt(startSelect.value);
             const endId = parseInt(endSelect.value);
 
-            const startNode = new Node(startId, 0, cities[startId].h);
+            const algorithm = document.getElementById('algorithm').value;
+            const h = algorithm === 'astar' ? cities[startId].h : 0;
+            const startNode = new Node(startId, 0, h);
             openList.push(startNode);
             updateStatus('搜索开始');
             isPaused = false;
@@ -368,7 +377,15 @@
                         node = node.parent;
                     }
                     updateVisualization();
-                    updateStatus('找到路径！');
+                    let pathLength = 0;
+                    for (let i = 0; i < currentPath.length - 1; i++) {
+                        const edge = edges.find(e => 
+                            (e.source.id === currentPath[i] && e.target.id === currentPath[i + 1]) ||
+                            (e.target.id === currentPath[i] && e.source.id === currentPath[i + 1])
+                        );
+                        pathLength += edge.distance;
+                    }
+                    updateStatus(`找到路径！总长度：${pathLength}`);
                     return;
                 }
 
@@ -379,7 +396,7 @@
                     }
 
                     const g = currentNode.g + neighbor.distance;
-                    const h = cities[neighbor.id].h;
+                    const h = algorithm === 'astar' ? cities[neighbor.id].h : 0;
                     const neighborNode = new Node(neighbor.id, g, h);
                     neighborNode.parent = currentNode;
 
